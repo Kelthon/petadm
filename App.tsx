@@ -1,8 +1,8 @@
 import React from 'react';
 import {View} from 'react-native';
 import NavBar from './src/components/NavBar';
-import Loader from './src/components/Loader';
 import Login from './src/pages/Login';
+import Index from './src/pages/Index';
 // import axios from 'axios';
 
 // import {
@@ -17,6 +17,7 @@ function App(): JSX.Element {
   return (
     <View>
       <NavBar />
+      <Index />
       <Login />
     </View>
   );
