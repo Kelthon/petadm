@@ -1,25 +1,29 @@
 import React from 'react';
-import {View} from 'react-native';
+import {SafeAreaView} from 'react-native';
+import {PaperProvider} from 'react-native-paper';
+import RemixIcon from 'react-native-remix-icon';
 import NavBar from './src/components/NavBar';
-import Login from './src/pages/Login';
 import Index from './src/pages/Index';
+import lightTheme from './theme';
+import Login from './src/pages/Login';
 // import axios from 'axios';
 
-// import {
-//   Text,
-//   Button,
-//   TextInput,
-//   ActivityIndicator,
-// } from '@react-native-material/core';
-// import Icon from 'react-native-remix-icon';
+function RemixIconAdapter(props: any) {
+  return <RemixIcon name={props?.source} {...props} />;
+}
 
 function App(): JSX.Element {
   return (
-    <View>
-      <NavBar />
-      <Index />
-      <Login />
-    </View>
+    <PaperProvider
+      settings={{
+        icon: props => <RemixIconAdapter {...props} />,
+      }}
+      theme={lightTheme}>
+      <SafeAreaView>
+        <NavBar />
+        <Login />
+      </SafeAreaView>
+    </PaperProvider>
   );
 }
 
