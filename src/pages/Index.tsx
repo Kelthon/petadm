@@ -1,80 +1,137 @@
+import axios from 'axios';
 import React, {useState} from 'react';
-import {HStack, VStack} from 'react-native-flex-layout';
-import {View, StyleSheet, ScrollView} from 'react-native';
-import {Text, Surface, List, AnimatedFAB, Icon, useTheme} from 'react-native-paper';
-import moment from 'moment';
-import 'moment/locale/pt-br';
+import {Dimensions, Image, StyleSheet, SafeAreaView} from 'react-native';
+import {
+  ActivityIndicator,
+  TextInput,
+  Button,
+  Snackbar,
+} from 'react-native-paper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-function capitalizeFirstLetter(str: string): string {
-  let firstLetter = str[0].toUpperCase();
-  let remainingString = str.slice(1);
+type LoginResponse = {
+  jwt: string;
+  user: {
+    id: number;
+    email: string;
+    username: string;
+    blocked: boolean;
+    confirmed: boolean;
+  };
+};
 
-  return `${firstLetter}${remainingString}`;
-}
+type User = {
+  id: number;
+  jwt: string;
+  email: string;
+  username: string;
+  blocked: boolean;
+  confirmed: boolean;
+};
 
-function getDate(): string {
-  moment.updateLocale('pt-br', null);
-  let dateString = moment().format('dddd, LL');
+function IndexPage(): JSX.Element {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loginLoading, setLoginLoading] = useState<boolean>(false);
+  const [userSession, setUserSession] = useState<User | null>(null);
+  const [visible, setVisible] = useState<boolean>(false);
+  const [account, setAccount] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
 
-  return capitalizeFirstLetter(dateString);
-}
+  const fetchData = async () => {
+    axios
+      .get('http://localhost:1337/api/schedules?populate=*')
+      .then(response => {})
+      .catch(err => {})
+      .finally(() => {});
+  };
 
-export default function App() {
-  const [user, setUser] = useState('Nome do usuário aqui');
-  const [workedHours, setWorkedHours] = useState('4:00');
-  const [overtime, setOvertime] = useState('0:00');
-  const [remote, setRemote] = useState(false);
+  const getUser = async () => {
+    await AsyncStorage.getItem('user').then(user => {
+      setUserSession(user !== null ? JSON.parse(user) : null);
+    });
+    fetchData();
+  };
 
-  const theme = useTheme();
+  const loginUser = async () => {
+    setLoginLoading(true);
+    axios
+      .post<LoginResponse>('http://localhost:1337/api/auth/local', {
+        identifier: account,
+        password: password,
+      })
+      .then(async response => {
+        const data = response.data;
+        const user: User = {
+          id: data.user.id,
+          jwt: data.jwt,
+          email: data.user.email,
+          username: data.user.username,
+          blocked: data.user.blocked,
+          confirmed: data.user.confirmed,
+        };
+
+        await AsyncStorage.setItem('user', JSON.stringify(user))
+          .then(() => {
+            setLoginLoading(false);
+          })
+          .catch(err => {
+            console.log(err.response);
+          });
+        setUserSession(user);
+      });
+  };
 
   return (
-    <View>
-      <Surface style={styles.info}>
-        <VStack spacing={10}>
-          <Text variant="titleLarge">{getDate()}</Text>
-          <Text variant="titleMedium">{user}</Text>
-          <HStack spacing={50}>
-            <View>
-              <Text variant="titleMedium">Horas Trabalhadas</Text>
-              <Text variant="titleLarge">{workedHours}</Text>
-            </View>
-            <View>
-              <Text variant="titleMedium">Horas extras</Text>
-              <Text variant="titleLarge">{overtime}</Text>
-            </View>
-          </HStack>
-        </VStack>
-      </Surface>
-      <ScrollView style={styles.registry}>
-        <List.Item title="1° Entrada" />
-        <List.Item title="Intervalo" />
-        <List.Item title="2° Entrada" />
-        <List.Item title="Saída" />
-      </ScrollView>
-      <AnimatedFAB
-        icon={<Icon source="timer-fill" size={40} />}
-        style={styles.fab}
-        theme={theme}
+    <SafeAreaView>
+      <Image
+        source={require('../../public/petadm_horizontal.png')}
+        style={styles.image}
       />
-    </View>
+      {userSession === null ? (
+        <>
+          <TextInput label="Conta" onChangeText={setAccount}/>
+          <TextInput
+            label="Senha"
+            secureTextEntry
+            right={<TextInput.Icon icon="eye" />}
+            onChangeText={setPassword}
+          />
+          <Button
+            mode="contained"
+            style={styles.btn}
+            textColor="#000000"
+            buttonColor="#F15921"
+            onPress={loginUser}>
+            {loginLoading && (
+              <ActivityIndicator color="#000000" animating={loading} />
+            )}
+            Entrar
+          </Button>
+        </>
+      ) : (
+        <ActivityIndicator color="#F15921" animating={loading} />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  info: {
-    padding: 8,
-    color: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F16925',
+  container: {
+    flex: 1,
+    justifyContent: 'space-between',
   },
-  registry: {
-    padding: 8,
-    paddingLeft: 20,
+
+  image: {
+    transform: [
+      {translateX: -Dimensions.get('window').width * 0.18},
+      {scale: Dimensions.get('window').width / 512},
+    ],
   },
-  fab: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
+
+  btn: {
+    marginVertical: 15,
+    marginHorizontal: 120,
   },
 });
+
+export default IndexPage;
